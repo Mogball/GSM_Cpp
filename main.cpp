@@ -8,7 +8,7 @@ typedef GSM_Solver truss_solver;
 // m  = 16
 // n = 5
 // 32, 47
-// 32, 35, 38, 41, 44, 47
+// 32, 35, 38, 41, 44, 47 (10 kN each)
 int main() {
 	std::freopen(("logs_" + std::to_string(std::time(NULL)) + ".txt").c_str(), "w", stdout);
 
