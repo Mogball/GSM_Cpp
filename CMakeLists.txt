@@ -4,6 +4,7 @@ project(GSM)
 set(CMAKE_CXX_STANDARD 11)
 
 include_directories(C:/Eigen/Eigen)
+include_directories(X:/Eigen/Eigen)
 
 set(SOURCE_FILES main.cpp)
 add_executable(GSM ${SOURCE_FILES})

@@ -272,11 +272,13 @@ int main() {
 		std::cout << "Member forces are:" << std::endl;
 		for (_us k = 0; k < n_struts; k++) {
 			std::pair<_us, _us> strut_i = strut_indices_inverse[k];
-			if (fabs(forces[k]) < tol && struts[strut_i.first][strut_i.second]) {
-				hasZero = true;
-				struts[strut_i.first][strut_i.second] = 0;
-				struts[strut_i.second][strut_i.first] = 0;
-				removed.push_back(k);
+			if (fabs(forces[k]) < tol) {
+				if (struts[strut_i.first][strut_i.second]) {
+					hasZero = true;
+					struts[strut_i.first][strut_i.second] = 0;
+					struts[strut_i.second][strut_i.first] = 0;
+					removed.push_back(k);
+				}
 			} else {
 				std::cout << '(' << strut_i.first << ", " << strut_i.second << ')';
 				std::cout << " : " << forces[k] << ", ";
