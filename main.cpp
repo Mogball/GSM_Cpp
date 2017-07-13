@@ -19,11 +19,11 @@ int main() {
 	tuple<__int32, __int32> support_reactions = make_tuple(32, 47);
 	tuple<__int32, __float32> applied_loads[]{
 			make_tuple(32, 10.0),
-	        make_tuple(35, 10.0),
-	        make_tuple(38, 10.0),
-	        make_tuple(41, 10.0),
-	        make_tuple(44, 10.0),
-	        make_tuple(47, 10.0)
+			make_tuple(35, 10.0),
+			make_tuple(38, 10.0),
+			make_tuple(41, 10.0),
+			make_tuple(44, 10.0),
+			make_tuple(47, 10.0)
 	};
 
 	truss_solver solver;
