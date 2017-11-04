@@ -3,11 +3,26 @@
 #include "GSM_Solver.h"
 #include <Eigen>
 #include <queue>
+#include <ctime>
 
 typedef Eigen::SparseMatrix<double> sparse_matrix;
 typedef Eigen::VectorXd eigen_vector;
 typedef Eigen::LeastSquaresConjugateGradient<sparse_matrix> linear_solver;
 typedef std::queue<__int32> int_queue;
+
+namespace timer {
+	static std::clock_t clock;
+
+	void start() {
+		clock = std::clock();
+	}
+
+	double ms() {
+		double dur = (std::clock() - clock) / (double) CLOCKS_PER_SEC * 1000.0;
+		clock = std::clock();
+		return dur;
+	}
+}
 
 vector *generate_grid_nodes(__int32 m, __int32 n, __float32 d) {
 	vector *nodes = new vector[m * n];
@@ -86,7 +101,6 @@ __float32 *get_loads(__int32 m, __int32 n, __int32 num_loads, vector *nodes,
 	}
 	__int32 supA_index;
 	__int32 supB_index;
-	__int32 critical_index = 0;
 	tie(supA_index, supB_index) = support_reactions;
 	vector supA_pos = nodes[supA_index];
 	vector supB_pos = nodes[supB_index];
@@ -135,11 +149,6 @@ __int32 *find_critical_nodes(__int32 *truss_start, __int32 *truss_end, __int32 n
 	return critical_nodes;
 }
 
-vector unit_vector(vector *nodes, __int32 i, __int32 j) {
-	vector r = nodes[j] - nodes[i];
-	return r / r.norm();
-}
-
 __float32 node_length(vector *nodes, __int32 i, __int32 j) {
 	vector r = nodes[j] - nodes[i];
 	return r.norm();
@@ -148,6 +157,9 @@ __float32 node_length(vector *nodes, __int32 i, __int32 j) {
 void GSM_Solver::compute_solution(__int32 m, __int32 n, __float32 d, __int32 num_loads,
                                   tuple<__int32, __int32> support_reactions,
                                   tuple<__int32, __float32> *applied_loads) {
+	fprintf(stderr, "<Direct GSM Preparation> START\n");
+	timer::start();
+
 	printf("Hyperparameters:\nn = %i, m = %i, d = %.2f\n\n", m, n, d);
 
 	__int32 num_nodes = m * n;
@@ -162,7 +174,9 @@ void GSM_Solver::compute_solution(__int32 m, __int32 n, __float32 d, __int32 num
 	__int32 *critical_nodes = find_critical_nodes(&truss_start, &truss_end, num_loads,
 	                                              support_reactions, applied_loads);
 
-	for (__int32 it = 0; it < 50; it++) {
+	fprintf(stderr, "<Direct GSM Preparation> END (%.1f)\n", timer::ms());
+	for (__int32 it = 0; it < num_struts; it++) {
+		fprintf(stderr, "<Iteration %i> START\n", it);
 		printf("<BEGIN ITERATION %i>\n", it);
 
 		__int32 num_active_nodes = 0;
@@ -246,6 +260,7 @@ void GSM_Solver::compute_solution(__int32 m, __int32 n, __float32 d, __int32 num
 
 		__float32 total_cost = num_active_nodes * COST_GUSSET_PLATE;
 		__float32 min_efficiency = -1;
+		__float32 max_length = -1;
 		__int32 min_index = -1;
 		for (__int32 k = 0; k < num_struts; k++) {
 			__float32 abs_force = fabs(forces[k]);
@@ -254,10 +269,13 @@ void GSM_Solver::compute_solution(__int32 m, __int32 n, __float32 d, __int32 num
 			}
 			__int32 *strut_index = strut_inverse[k];
 			__float32 strut_length = node_length(nodes, strut_index[0], strut_index[1]);
+			//__float32 strut_efficiency = abs_force / strut_length;
 			__float32 strut_efficiency = abs_force / strut_length;
 			total_cost += strut_length * COST_MEMBER_LENGTH;
-			if (min_efficiency == -1 || strut_efficiency < min_efficiency) {
+			if (min_efficiency == -1 || (fabs(strut_length - max_length) > TOL && strut_length > max_length)
+			    || (fabs(strut_length - max_length) < TOL && strut_efficiency < min_efficiency)) {
 				min_efficiency = strut_efficiency;
+				max_length = strut_length;
 				min_index = k;
 			}
 			if (forces[k] < MIN_FORCE || forces[k] > MAX_FORCE) {
@@ -279,7 +297,7 @@ void GSM_Solver::compute_solution(__int32 m, __int32 n, __float32 d, __int32 num
 		bool found_nodes[num_nodes]{0};
 		__int32 found_nodes_count = 1;
 		next_nodes.push(truss_start);
-		while(next_nodes.size()) {
+		while (next_nodes.size()) {
 			__int32 node_ptr = next_nodes.front();
 			next_nodes.pop();
 			found_nodes[node_ptr] = 1;
@@ -303,6 +321,7 @@ void GSM_Solver::compute_solution(__int32 m, __int32 n, __float32 d, __int32 num
 			}
 		}
 		printf("\n\n");
+		fprintf(stderr, "<Iteration %i> END (%.1f)\n", it, timer::ms());
 	}
 
 	delete[] nodes;

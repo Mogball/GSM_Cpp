@@ -14,6 +14,11 @@ using std::tuple;
 using std::tie;
 using std::make_tuple;
 
+inline vector unit_vector(vector *nodes, __int32 i, __int32 j) {
+	vector r = nodes[j] - nodes[i];
+	return r / r.norm();
+}
+
 class GSM_Solver {
 public:
 	virtual void compute_solution(__int32 m, __int32 n, __float32 d, __int32 num_loads,
